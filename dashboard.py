@@ -1,22 +1,50 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+import os
+
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None
 
 st.set_page_config(page_title="Global Patent Intelligence", layout="wide")
 
 st.title("Global Patent Intelligence Dashboard")
 
 DB_NAME = "patents.db"
+DATABASE_URL = os.getenv("DATABASE_URL") or st.secrets.get("DATABASE_URL", "")
+
+
+def get_connection():
+    if DATABASE_URL:
+        if psycopg2 is None:
+            raise RuntimeError("psycopg2 is required for DATABASE_URL connections")
+        return psycopg2.connect(DATABASE_URL)
+
+    if not os.path.exists(DB_NAME):
+        return None
+
+    return sqlite3.connect(DB_NAME)
 
 @st.cache_data
 def load_data(query):
     try:
-        conn = sqlite3.connect(DB_NAME)
+        conn = get_connection()
+        if conn is None:
+            return pd.DataFrame()
         df = pd.read_sql_query(query, conn)
         conn.close()
         return df
-    except sqlite3.Error:
+    except Exception:
         return pd.DataFrame()
+
+
+if not DATABASE_URL and not os.path.exists(DB_NAME):
+    st.error(
+        "No database is available in this deployment. Add a Supabase/Postgres DATABASE_URL secret or include a usable patents.db file."
+    )
+    st.stop()
 
 # Layout
 col1, col2 = st.columns(2)
@@ -50,13 +78,22 @@ with col2:
         st.bar_chart(df_comp.set_index('name'))
 
 st.subheader("Patent Trends Over Time")
-trends_query = """
-SELECT year, COUNT(patent_id) as patents
-FROM patents
-WHERE year > 1900 AND year <= strftime('%Y', 'now')
-GROUP BY year
-ORDER BY year
-"""
+if DATABASE_URL:
+    trends_query = """
+    SELECT year, COUNT(patent_id) as patents
+    FROM patents
+    WHERE year > 1900 AND year <= EXTRACT(YEAR FROM CURRENT_DATE)
+    GROUP BY year
+    ORDER BY year
+    """
+else:
+    trends_query = """
+    SELECT year, COUNT(patent_id) as patents
+    FROM patents
+    WHERE year > 1900 AND year <= CAST(strftime('%Y', 'now') AS INTEGER)
+    GROUP BY year
+    ORDER BY year
+    """
 df_trends = load_data(trends_query)
 if not df_trends.empty:
     st.line_chart(df_trends.set_index('year'))
