@@ -1,0 +1,69 @@
+{
+    "total_patents": 9454161,
+    "top_inventors": [
+        {
+            "name": "Shunpei Yamazaki",
+            "patents": 6775
+        },
+        {
+            "name": "Kia Silverbrook",
+            "patents": 4772
+        },
+        {
+            "name": "Tao Luo",
+            "patents": 4417
+        },
+        {
+            "name": "Kangguo Cheng",
+            "patents": 2960
+        },
+        {
+            "name": "Jonathan P. Ive",
+            "patents": 2941
+        }
+    ],
+    "top_companies": [
+        {
+            "name": "SAMSUNG DISPLAY CO., LTD.",
+            "patents": 596721
+        },
+        {
+            "name": "International Business Machines Corporation",
+            "patents": 562112
+        },
+        {
+            "name": "CANON KABUSHIKI KAISHA",
+            "patents": 218840
+        },
+        {
+            "name": "Apple Inc.",
+            "patents": 197237
+        },
+        {
+            "name": "Intel Corporation",
+            "patents": 181107
+        }
+    ],
+    "top_countries": [
+        {
+            "country": "US",
+            "share": 0.5865
+        },
+        {
+            "country": "JP",
+            "share": 0.1539
+        },
+        {
+            "country": "DE",
+            "share": 0.0593
+        },
+        {
+            "country": "KR",
+            "share": 0.0424
+        },
+        {
+            "country": "TW",
+            "share": 0.0291
+        }
+    ]
+}

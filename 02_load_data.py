@@ -1,11 +1,13 @@
 import sqlite3
 import pandas as pd
 import os
+import gc
 
 DB_NAME = "patents.db"
 SCHEMA_FILE = "schema.sql"
 DATA_DIR = "data"
-CHUNK_SIZE = 250000
+# Significantly reduced chunk size to prevent Silent RAM crashes on massive abstract strings
+CHUNK_SIZE = 50000 
 
 def init_db():
     print(f"Initializing database from {SCHEMA_FILE}...")
@@ -24,16 +26,32 @@ def load_staging_file(conn, file_name, table_name):
 
     print(f"Loading {file_name} into staging table '{table_name}'...")
     chunk_count = 0
-    for chunk in pd.read_csv(file_path, chunksize=CHUNK_SIZE):
-        chunk.to_sql(table_name, conn, if_exists="append", index=False)
-        chunk_count += 1
-        print(f"  ...inserted {chunk_count * CHUNK_SIZE} rows")
+    try:
+        for chunk in pd.read_csv(file_path, chunksize=CHUNK_SIZE):
+            chunk.to_sql(table_name, conn, if_exists="append", index=False)
+            chunk_count += 1
+            if chunk_count % 5 == 0:
+                print(f"  ...inserted {chunk_count * CHUNK_SIZE} rows")
+            
+            # Force garbage collection to free RAM
+            del chunk
+            gc.collect()
+            
+        print(f"Finished loading {file_name}. Deleting CSV to free up disk space...")
+        # Free up disk space progressively by deleting the CSV file once it's safely in the database!
+        try:
+            os.remove(file_path)
+        except OSError as e:
+            print(f"Warning: Could not delete {file_path} - {e}")
+
+    except Exception as e:
+        print(f"Error loading {file_name}: {e}")
 
 def transform_data(conn):
     print("\nExecuting SQL Transformations to build final tables...")
     cursor = conn.cursor()
 
-    print("1. Building 'patents' table...")
+    print("1. Building 'patents' table (this may take a few minutes)...")
     cursor.execute("""
         INSERT INTO patents (patent_id, title, abstract, filing_date, year)
         SELECT 
@@ -92,6 +110,10 @@ def transform_data(conn):
     staging_tables = ['stg_patent', 'stg_abstract', 'stg_application', 'stg_inventor', 'stg_assignee', 'stg_location']
     for t in staging_tables:
         cursor.execute(f"DROP TABLE IF EXISTS {t}")
+    conn.commit()
+    # Execute a VACUUM to reclaim disk space from dropped tables
+    print("Vacuuming database to reclaim disk space...")
+    cursor.execute("VACUUM")
     conn.commit()
     print("Database is ready for analysis!")
 
