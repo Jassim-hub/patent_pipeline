@@ -1,0 +1,7 @@
+-- Run this from your machine with psql after creating the summary tables in Supabase.
+-- Example:
+-- psql "postgresql://postgres.hpstvhoxzpfvozibsljv:YOUR_PASSWORD@aws-0-eu-west-1.pooler.supabase.com:5432/postgres" -f load_summary_data.psql
+
+\copy top_inventors(inventor_name, total_patents) from 'D:/patent_pipeline/top_inventors.csv' csv header
+\copy top_companies(company_name, total_patents) from 'D:/patent_pipeline/top_companies.csv' csv header
+\copy country_trends(country, total_patents) from 'D:/patent_pipeline/country_trends.csv' csv header
